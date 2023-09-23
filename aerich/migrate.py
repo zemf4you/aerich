@@ -237,7 +237,12 @@ class Migrate:
                         cls._add_operator(cls._rename_field(model, *change), upgrade)
                 # m2m fields
                 old_m2m_fields = old_model_describe.get("m2m_fields")
-                new_m2m_fields = new_model_describe.get("m2m_fields")
+                new_m2m_fields = sorted(
+                    new_model_describe.get("m2m_fields"),
+                    key=lambda field: old_m2m_fields.index(field)
+                    if field in old_m2m_fields
+                    else len(old_m2m_fields),
+                )
                 for action, option, change in diff(old_m2m_fields, new_m2m_fields):
                     if change[0][0] == "db_constraint":
                         continue
@@ -300,7 +305,7 @@ class Migrate:
 
                 # add fields or rename fields
                 for new_data_field_name in set(new_data_fields_name).difference(
-                    set(old_data_fields_name)
+                        set(old_data_fields_name)
                 ):
                     new_data_field = next(
                         filter(lambda x: x.get("name") == new_data_field_name, new_data_fields)
@@ -312,22 +317,22 @@ class Migrate:
                         if len(changes) == 2:
                             # rename field
                             if (
-                                changes[0]
-                                == (
+                                    changes[0]
+                                    == (
                                     "change",
                                     "name",
                                     (old_data_field_name, new_data_field_name),
-                                )
-                                and changes[1]
-                                == (
+                            )
+                                    and changes[1]
+                                    == (
                                     "change",
                                     "db_column",
                                     (
-                                        old_data_field.get("db_column"),
-                                        new_data_field.get("db_column"),
+                                            old_data_field.get("db_column"),
+                                            new_data_field.get("db_column"),
                                     ),
-                                )
-                                and old_data_field_name not in new_data_fields_name
+                            )
+                                    and old_data_field_name not in new_data_fields_name
                             ):
                                 if upgrade:
                                     is_rename = click.prompt(
@@ -343,9 +348,9 @@ class Migrate:
                                     cls._rename_old.append(old_data_field_name)
                                     # only MySQL8+ has rename syntax
                                     if (
-                                        cls.dialect == "mysql"
-                                        and cls._db_version
-                                        and cls._db_version.startswith("5.")
+                                            cls.dialect == "mysql"
+                                            and cls._db_version
+                                            and cls._db_version.startswith("5.")
                                     ):
                                         cls._add_operator(
                                             cls._change_field(
@@ -376,11 +381,11 @@ class Migrate:
                             )
                 # remove fields
                 for old_data_field_name in set(old_data_fields_name).difference(
-                    set(new_data_fields_name)
+                        set(new_data_fields_name)
                 ):
                     # don't remove field if is renamed
                     if (upgrade and old_data_field_name in cls._rename_old) or (
-                        not upgrade and old_data_field_name in cls._rename_new
+                            not upgrade and old_data_field_name in cls._rename_new
                     ):
                         continue
                     old_data_field = next(
@@ -412,7 +417,7 @@ class Migrate:
 
                 # add fk
                 for new_fk_field_name in set(new_fk_fields_name).difference(
-                    set(old_fk_fields_name)
+                        set(old_fk_fields_name)
                 ):
                     fk_field = next(
                         filter(lambda x: x.get("name") == new_fk_field_name, new_fk_fields)
@@ -427,7 +432,7 @@ class Migrate:
                         )
                 # drop fk
                 for old_fk_field_name in set(old_fk_fields_name).difference(
-                    set(new_fk_fields_name)
+                        set(new_fk_fields_name)
                 ):
                     old_fk_field = next(
                         filter(lambda x: x.get("name") == old_fk_field_name, old_fk_fields)
@@ -474,7 +479,7 @@ class Migrate:
                                 continue
                         elif option == "default":
                             if not (
-                                is_default_function(old_new[0]) or is_default_function(old_new[1])
+                                    is_default_function(old_new[0]) or is_default_function(old_new[1])
                             ):
                                 # change column default
                                 cls._add_operator(
